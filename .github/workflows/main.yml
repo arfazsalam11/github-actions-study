@@ -45,7 +45,7 @@ jobs:
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
         run: |
           mvn deploy \
-            -DaltDeploymentRepository=nexus::default::https://13.60.2.2/repository/maven-releases/ \
+            -DaltDeploymentRepository=nexus::default::http://13.60.2.2/repository/maven-releases/ \
             -Dnexus.username=$NEXUS_USERNAME \
             -Dnexus.password=$NEXUS_PASSWORD
 

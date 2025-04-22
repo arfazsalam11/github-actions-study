@@ -33,7 +33,7 @@ jobs:
         run: |
           mvn verify sonar:sonar \
             -Dsonar.projectKey=my-project-key \
-            -Dsonar.host.url=https://13.60.2.2 \
+            -Dsonar.host.url=http://13.60.2.2:9000 \
             -Dsonar.login=$SONAR_TOKEN
 
       - name: Build with Maven

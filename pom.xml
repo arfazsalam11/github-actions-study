@@ -45,6 +45,18 @@
         </dependency>
     </dependencies>
 
+   <distributionManagement>
+        <repository>
+            <id>nexus-releases</id>
+            <url>http://13.48.209.95:8081/repository/maven-releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>nexus-releases</id>
+            <url>http://13.48.209.95:8081/repository/maven-snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+    
     <build>
         <plugins>
             <!-- Compiler plugin to set the Java version -->

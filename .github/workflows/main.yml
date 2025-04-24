@@ -1,3 +1,11 @@
+name: Deploy Java Application to EC2 Tomcat
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
   build:
     runs-on: ubuntu-latest
 
@@ -31,23 +39,47 @@
       - name: Build with Maven
         run: mvn clean package -DskipTests
 
-      # 🔽 Add this block here
-      - name: Configure Maven Settings
-        run: |
-          mkdir -p ~/.m2
-          cat > ~/.m2/settings.xml <<EOF
-          <settings>
-            <servers>
-              <server>
-                <id>nexus</id>
-                <username>${{ secrets.NEXUS_USERNAME }}</username>
-                <password>${{ secrets.NEXUS_PASSWORD }}</password>
-              </server>
-            </servers>
-          </settings>
-          EOF
-
       - name: Publish to Nexus
+        env:
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
         run: |
           mvn deploy \
-            -DaltDeploymentRepository=nexus::default::http://13.48.209.95:8081/repository/maven-releases/
+            -DaltDeploymentRepository=nexus::default::http://13.48.209.95/repository/maven-releases/ \
+            -Dnexus.username=$NEXUS_USERNAME \
+            -Dnexus.password=$NEXUS_PASSWORD
+
+      - name: Upload WAR file
+        uses: actions/upload-artifact@v4
+        with:
+          name: java-app
+          path: target/*.war
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download WAR file
+        uses: actions/download-artifact@v4
+        with:
+          name: java-app
+          path: target
+
+      - name: Deploy WAR via SCP
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          HOSTNAME: ${{ secrets.SSH_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H $HOSTNAME >> ~/.ssh/known_hosts
+          scp -i ~/.ssh/id_rsa target/*.war ec2-user@$HOSTNAME:/home/ec2-user/
+
+      - name: Copy WAR to Tomcat webapps
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          HOSTNAME: ${{ secrets.SSH_HOST }}
+        run: |
+          ssh -i ~/.ssh/id_rsa ec2-user@$HOSTNAME 'sudo cp /home/ec2-user/*.war /opt/tomcat/webapps/'
